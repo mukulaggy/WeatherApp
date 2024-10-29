@@ -5,34 +5,45 @@ import "./SearchBox.css";
 
 export default function SearchBox({ updateInfo, darkMode }) {
     let [city, setCity] = useState("");
+    let [loading, setLoading] = useState(false);
+    let [error, setError] = useState("");
+
     const API_URL = "https://api.openweathermap.org/data/2.5/weather";
     const API_KEY = "57e39b434e35e651ba45b102a06fcb1b";
 
-    let getAWeatherInfo = async () => {
-        let response = await fetch(`${API_URL}?q=${city}&appid=${API_KEY}&units=metric`);
-        let jsonResponse = await response.json();
-        let result = {
-            city: city,
-            temp: jsonResponse.main.temp,
-            tempMin: jsonResponse.main.temp_min,
-            tempMax: jsonResponse.main.temp_max,
-            humidity: jsonResponse.main.humidity,
-            feelsLike: jsonResponse.main.feels_like,
-            weather: jsonResponse.weather[0].description,
-        };
-        return result;
+    let getWeatherInfo = async () => {
+        try {
+            let response = await fetch(`${API_URL}?q=${city}&appid=${API_KEY}&units=metric`);
+            if (!response.ok) throw new Error("Please Enter Valid City Name");
+            let jsonResponse = await response.json();
+            return {
+                city: city,
+                temp: jsonResponse.main.temp,
+                tempMin: jsonResponse.main.temp_min,
+                tempMax: jsonResponse.main.temp_max,
+                humidity: jsonResponse.main.humidity,
+                feelsLike: jsonResponse.main.feels_like,
+                weather: jsonResponse.weather[0].description,
+            };
+        } catch (error) {
+            setError(error.message);
+            return null;
+        }
     };
 
     let handleChange = (event) => {
         setCity(event.target.value);
-    }
+        setError("");  // Clear previous errors
+    };
 
     let handleSubmit = async (event) => {
         event.preventDefault();
+        setLoading(true);
+        let newInfo = await getWeatherInfo();
+        if (newInfo) updateInfo(newInfo);
+        setLoading(false);
         setCity("");
-        let newInfo = await getAWeatherInfo();
-        updateInfo(newInfo);
-    }
+    };
 
     return (
         <div className={`search-box ${darkMode ? 'dark' : ''}`}>
@@ -50,10 +61,12 @@ export default function SearchBox({ updateInfo, darkMode }) {
                     variant="contained" 
                     type="submit"
                     className="search-button"
+                    disabled={loading}
                 >
-                    Search
+                    {loading ? "Loading..." : "Search"}
                 </Button>
             </form>
+            {error && <p style={{ color: "red" }}>{error}</p>}
         </div>
     );
 }
